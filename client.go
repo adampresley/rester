@@ -209,7 +209,7 @@ func getRequest(settings *clientoptions.ClientOptions, method, path string, body
 		return request, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	attachHeaders(request, settings.Headers, options.Headers)
+	attachHeaders(request, settings.Headers, options.Headers, settings.BasicAuthHeader)
 
 	if options.Debug || settings.Debug {
 		slog.Debug("GET request to "+fullURL, "headers", redactHeaders(request.Header))
@@ -277,13 +277,17 @@ func getResult[T any](response *http.Response, callResult *HttpResult) (T, error
 	return result, nil
 }
 
-func attachHeaders(request *http.Request, clientHeaders, callHeaders map[string]string) {
+func attachHeaders(request *http.Request, clientHeaders, callHeaders map[string]string, basicAuth string) {
 	for key, value := range clientHeaders {
 		request.Header.Set(key, value)
 	}
 
 	for key, value := range callHeaders {
 		request.Header.Set(key, value)
+	}
+
+	if basicAuth != "" {
+		request.Header.Set("Authorization", "Basic "+basicAuth)
 	}
 }
 

@@ -18,6 +18,7 @@ client := clientoptions.New(
 
 ### Configuration Options
 
+- `WithBasicAuth(username, password)`: Sends a Basic Auth header with the username and password Base64 encoded
 - `WithDebug(bool)`: Enables debug logging, which prints request details (with redacted headers) to the standard logger.
 - `WithHeaders(map[string]string)`: Sets headers that will be sent with every request.
 - `WithHttpClient(http.Client)`: Allows you to provide a custom `http.Client` instance.
