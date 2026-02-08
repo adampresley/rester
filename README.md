@@ -37,7 +37,7 @@ type User struct {
 }
 
 // Make the request
-user, httpResult, err := rest.Get[User](client, "/users/1")
+user, httpResult, err := rester.Get[User](client, "/users/1")
 
 if err != nil {
   // Handle error
@@ -59,7 +59,7 @@ type NewUser struct {
 newUser := NewUser{Name: "Adam"}
 body, _ := json.Marshal(newUser)
 
-createdUser, _, err := rest.Post[User](client, "/users", bytes.NewReader(body))
+createdUser, _, err := rester.Post[User](client, "/users", bytes.NewReader(body))
 ```
 
 ## Call Options
@@ -68,7 +68,7 @@ For individual requests, you can provide call-specific options to override or ad
 
 ```go
 // Add custom headers and query parameters to a single GET request
-user, _, err := rest.Get[User](
+user, _, err := rester.Get[User](
   client,
   "/users/1",
   calloptions.WithCallHeaders(map[string]string{
@@ -100,7 +100,7 @@ The client automatically handles unmarshalling for `application/json`, `applicat
 The client will return an error if the HTTP response status code is not a successful 2xx code. Even when an error is returned, the `HttpResult` struct is still populated, allowing you to inspect the response for troubleshooting.
 
 ```go
-user, httpResult, err := rest.Get[User](client, "/users/999") // Assume this user doesn't exist
+user, httpResult, err := rester.Get[User](client, "/users/999") // Assume this user doesn't exist
 
 if err != nil {
   // Log the error
