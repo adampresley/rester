@@ -13,6 +13,7 @@ import (
 
 	"github.com/adampresley/rester/calloptions"
 	"github.com/adampresley/rester/clientoptions"
+	"github.com/adampresley/rester/contenttype"
 )
 
 type HttpResult struct {
@@ -22,9 +23,7 @@ type HttpResult struct {
 	Headers     http.Header
 }
 
-type contentTypeHandler func(body []byte, result any) error
-
-var contentTypeHandlers = map[string]contentTypeHandler{
+var contentTypeHandlers = map[string]contenttype.ContentTypeHandler{
 	"application/json":         handleJSON,
 	"application/problem+json": handleJSON,
 	"application/xml":          handleXML,
@@ -57,7 +56,7 @@ func Get[T any](settings *clientoptions.ClientOptions, path string, options ...c
 
 	defer response.Body.Close()
 
-	if result, err = getResult[T](response, &callResult); err != nil {
+	if result, err = getResult[T](response, &callResult, settings.CustomContentTypeHandlers); err != nil {
 		return result, callResult, fmt.Errorf("failed to parse response: %w", err)
 	}
 
@@ -90,7 +89,7 @@ func Post[T any](settings *clientoptions.ClientOptions, path string, body io.Rea
 
 	defer response.Body.Close()
 
-	if result, err = getResult[T](response, &callResult); err != nil {
+	if result, err = getResult[T](response, &callResult, settings.CustomContentTypeHandlers); err != nil {
 		return result, callResult, fmt.Errorf("failed to parse response: %w", err)
 	}
 
@@ -123,7 +122,7 @@ func Put[T any](settings *clientoptions.ClientOptions, path string, body io.Read
 
 	defer response.Body.Close()
 
-	if result, err = getResult[T](response, &callResult); err != nil {
+	if result, err = getResult[T](response, &callResult, settings.CustomContentTypeHandlers); err != nil {
 		return result, callResult, fmt.Errorf("failed to parse response: %w", err)
 	}
 
@@ -156,7 +155,7 @@ func Patch[T any](settings *clientoptions.ClientOptions, path string, body io.Re
 
 	defer response.Body.Close()
 
-	if result, err = getResult[T](response, &callResult); err != nil {
+	if result, err = getResult[T](response, &callResult, settings.CustomContentTypeHandlers); err != nil {
 		return result, callResult, fmt.Errorf("failed to parse response: %w", err)
 	}
 
@@ -189,7 +188,7 @@ func Delete[T any](settings *clientoptions.ClientOptions, path string, options .
 
 	defer response.Body.Close()
 
-	if result, err = getResult[T](response, &callResult); err != nil {
+	if result, err = getResult[T](response, &callResult, settings.CustomContentTypeHandlers); err != nil {
 		return result, callResult, fmt.Errorf("failed to parse response: %w", err)
 	}
 
@@ -238,7 +237,7 @@ func doRequest(settings *clientoptions.ClientOptions, request *http.Request) (*h
 	return response, callResult, nil
 }
 
-func getResult[T any](response *http.Response, callResult *HttpResult) (T, error) {
+func getResult[T any](response *http.Response, callResult *HttpResult, customContentHandlers map[string]contenttype.ContentTypeHandler) (T, error) {
 	var (
 		err    error
 		result T
@@ -271,7 +270,16 @@ func getResult[T any](response *http.Response, callResult *HttpResult) (T, error
 	} else if len(body) <= 0 {
 		return result, nil
 	} else {
-		return result, fmt.Errorf("unsupported content type: %s", contentType)
+		/*
+		 * If we have any custom content type handlers, check those.
+		 */
+		if handler, exists := customContentHandlers[contentType]; exists && len(body) > 0 {
+			if err = handler(body, &result); err != nil {
+				return result, fmt.Errorf("failed to unmarshal response: %w", err)
+			}
+		} else {
+			return result, fmt.Errorf("unsupported content type: %s", contentType)
+		}
 	}
 
 	return result, nil
